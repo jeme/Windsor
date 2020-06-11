@@ -120,12 +120,18 @@ namespace Castle.MicroKernel.Registration
 			get { return new ProxyGroup<TService>(this); }
 		}
 
-		protected internal IList<Type> Services
+		/// <summary>
+		/// 
+		/// </summary>
+		public IList<Type> Services
 		{
-			get { return potentialServices; }
+			get { return potentialServices.AsReadOnly(); }
 		}
-
-		protected internal int ServicesCount
+		
+		/// <summary>
+		/// 
+		/// </summary>
+		public int ServicesCount
 		{
 			get { return potentialServices.Count; }
 		}
@@ -541,7 +547,7 @@ namespace Castle.MicroKernel.Registration
 		{
 			if (implementation != null && implementation != typeof(LateBoundComponent))
 			{
-				var message = String.Format("This component has already been assigned implementation {0}",
+				var message = string.Format("This component has already been assigned implementation {0}",
 				                            implementation.FullName);
 				throw new ComponentRegistrationException(message);
 			}
@@ -947,17 +953,6 @@ namespace Castle.MicroKernel.Registration
 			return this;
 		}
 
-		/// <summary>
-		/// Uses a factory method to instantiate the component.
-		/// </summary>
-		/// <typeparam name = "TImpl"> Implementation type </typeparam>
-		/// <param name = "factoryMethod"> Factory method </param>
-		/// <returns> </returns>
-		public ComponentRegistration<TService> UsingFactoryMethod<TImpl>(Func<IKernel, CreationContext, TImpl> factoryMethod)
-			where TImpl : TService
-		{
-			return UsingFactoryMethod((k, m, c) => factoryMethod(k, c));
-		}
 
 		internal void RegisterOptionally()
 		{
@@ -1015,24 +1010,42 @@ namespace Castle.MicroKernel.Registration
 			}
 			kernel.AddCustomComponent(componentModel);
 		}
+	}
+
+	public static class ComponentRegistrationExtensions
+	{
+		/// <summary>
+		/// Uses a factory method to instantiate the component.
+		/// </summary>
+		/// <typeparam name = "TImpl"> Implementation type </typeparam>
+		/// <typeparam name = "TService"></typeparam>
+		/// <param name = "self"></param>
+		/// <param name = "factoryMethod"> Factory method </param>
+		/// <returns> </returns>
+		public static ComponentRegistration<TService> UsingFactoryMethod<TImpl, TService>(this ComponentRegistration<TService> self, Func<IKernel, CreationContext, TImpl> factoryMethod)
+			where TImpl : TService where TService : class
+		{
+			return self.UsingFactoryMethod((k, m, c) => factoryMethod(k, c));
+		}
 
 		/// <summary>
 		/// Overrides default behavior by making the current component the default for every service it exposes. The <paramref name = "serviceFilter" /> allows user to narrow down the number of services which
 		/// should be make defaults.
 		/// </summary>
+		/// <param name = "self"></param>
 		/// <param name = "serviceFilter"> Invoked for each service exposed by given component if returns <c>true</c> this component will be the default for that service. </param>
 		/// <returns> </returns>
 		/// <remarks>
 		/// When specified for multiple components for any given service the one registered after will override the one selected before.
 		/// </remarks>
-		public ComponentRegistration<TService> IsDefault(Predicate<Type> serviceFilter)
+		public static ComponentRegistration<TService> IsDefault<TService>(this ComponentRegistration<TService> self, Predicate<Type> serviceFilter) where TService : class
 		{
 			if (serviceFilter == null)
 			{
-				throw new ArgumentNullException("serviceFilter");
+				throw new ArgumentNullException(nameof(serviceFilter));
 			}
 			var properties = new Property(Constants.DefaultComponentForServiceFilter, serviceFilter);
-			return ExtendedProperties(properties);
+			return self.ExtendedProperties(properties);
 		}
 
 		/// <summary>
@@ -1042,9 +1055,9 @@ namespace Castle.MicroKernel.Registration
 		/// <remarks>
 		/// When specified for multiple components for any given service the one registered after will override the one selected before.
 		/// </remarks>
-		public ComponentRegistration<TService> IsDefault()
+		public static ComponentRegistration<TService> IsDefault<TService>(this ComponentRegistration<TService> self) where TService : class
 		{
-			return IsDefault(_ => true);
+			return self.IsDefault(_ => true);
 		}
 
 		/// <summary>
@@ -1052,55 +1065,60 @@ namespace Castle.MicroKernel.Registration
 		/// non-fallback, component will be registered exposing any of these same services as this component, that other component will take precedence over this one, regardless of order in which they are
 		/// registered.
 		/// </summary>
+		/// <param name = "self"></param>
 		/// <param name = "serviceFilter"> Invoked for each service exposed by given component if returns <c>true</c> this component will be the fallback for that service. </param>
-		public ComponentRegistration<TService> IsFallback(Predicate<Type> serviceFilter)
+		public static ComponentRegistration<TService> IsFallback<TService>(this ComponentRegistration<TService> self, Predicate<Type> serviceFilter) where TService : class
 		{
 			if (serviceFilter == null)
 			{
-				throw new ArgumentNullException("serviceFilter");
+				throw new ArgumentNullException(nameof(serviceFilter));
 			}
 			var properties = new Property(Constants.FallbackComponentForServiceFilter, serviceFilter);
-			return ExtendedProperties(properties);
+			return self.ExtendedProperties(properties);
 		}
 
 		/// <summary>
 		/// Overrides default behavior by making the current component the fallback for every service it exposes. That is if another, non-fallback, component will be registered exposing any of the same services
 		/// as this component, that other component will take precedence over this one, regardless of order in which they are registered
 		/// </summary>
+		/// <param name = "self"></param>
 		/// <returns> </returns>
-		public ComponentRegistration<TService> IsFallback()
+		public static ComponentRegistration<TService> IsFallback<TService>(this ComponentRegistration<TService> self) where TService : class
 		{
-			return IsFallback(_ => true);
+			return self.IsFallback(_ => true);
 		}
 
 		/// <summary>
 		/// Filters (settable) properties of the component's implementation type to ignore.
 		/// </summary>
+		/// <param name = "self"></param>
 		/// <param name = "propertySelector"> Predicate finding properties to ignore. If it returns <c>true</c> the property will not be added to <see cref = "ComponentModel.Properties" /> collection and Windsor
 		/// will never try to set it. </param>
-		public ComponentRegistration<TService> PropertiesIgnore(Func<PropertyInfo, bool> propertySelector)
+		public static ComponentRegistration<TService> PropertiesIgnore<TService>(this ComponentRegistration<TService> self, Func<PropertyInfo, bool> propertySelector) where TService : class
 		{
-			return PropertiesIgnore((_, p) => propertySelector(p));
+			return self.PropertiesIgnore((_, p) => propertySelector(p));
 		}
 
 		/// <summary>
 		/// Filters (settable) properties of the component's implementation type to expose in the container as mandatory dependencies
 		/// </summary>
+		/// <param name = "self"></param>
 		/// <param name = "propertySelector"> Predicate finding properties. If it returns <c>true</c> the property will be added to <see cref = "ComponentModel.Properties" /> collection and Windsor will make it
 		/// a mandatory dependency. </param>
-		public ComponentRegistration<TService> PropertiesRequire(Func<PropertyInfo, bool> propertySelector)
+		public static ComponentRegistration<TService> PropertiesRequire<TService>(this ComponentRegistration<TService> self, Func<PropertyInfo, bool> propertySelector) where TService : class
 		{
-			return PropertiesRequire((_, p) => propertySelector(p));
+			return self.PropertiesRequire((_, p) => propertySelector(p));
 		}
 
 		/// <summary>
 		/// Filters (settable) properties of the component's implementation type to ignore.
 		/// </summary>
+		/// <param name = "self"></param>
 		/// <param name = "propertySelector"> Predicate finding properties to ignore. If it returns <c>true</c> the property will not be added to <see cref = "ComponentModel.Properties" /> collection and Windsor
 		/// will never try to set it. </param>
-		public ComponentRegistration<TService> PropertiesIgnore(Func<ComponentModel, PropertyInfo, bool> propertySelector)
+		public static ComponentRegistration<TService> PropertiesIgnore<TService>(this ComponentRegistration<TService> self, Func<ComponentModel, PropertyInfo, bool> propertySelector) where TService : class
 		{
-			return AddDescriptor(new DelegatingModelDescriptor(builder: (k, c) =>
+			return self.AddDescriptor(new DelegatingModelDescriptor(builder: (k, c) =>
 			{
 				var filters = StandardPropertyFilters.GetPropertyFilters(c, createIfMissing: true);
 				filters.Add(StandardPropertyFilters.IgnoreSelected(propertySelector));
@@ -1110,11 +1128,12 @@ namespace Castle.MicroKernel.Registration
 		/// <summary>
 		/// Filters (settable) properties of the component's implementation type to expose in the container as mandatory dependencies
 		/// </summary>
+		/// <param name = "self"></param>
 		/// <param name = "propertySelector"> Predicate finding properties. If it returns <c>true</c> the property will be added to <see cref = "ComponentModel.Properties" /> collection and Windsor will make it
 		/// a mandatory dependency. </param>
-		public ComponentRegistration<TService> PropertiesRequire(Func<ComponentModel, PropertyInfo, bool> propertySelector)
+		public static ComponentRegistration<TService> PropertiesRequire<TService>(this ComponentRegistration<TService> self, Func<ComponentModel, PropertyInfo, bool> propertySelector) where TService : class
 		{
-			return AddDescriptor(new DelegatingModelDescriptor(builder: (k, c) =>
+			return self.AddDescriptor(new DelegatingModelDescriptor(builder: (k, c) =>
 			{
 				var filters = StandardPropertyFilters.GetPropertyFilters(c, createIfMissing: true);
 				filters.Add(StandardPropertyFilters.RequireSelected(propertySelector));
@@ -1124,12 +1143,13 @@ namespace Castle.MicroKernel.Registration
 		/// <summary>
 		/// Filters (settable) properties of the component's implementation type to expose in the container and specifies if matched properties are considered mandatory.
 		/// </summary>
+		/// <param name = "self"></param>
 		/// <param name = "filter"> Rules for deciding whether given properties are exposed in the container or ignored and if they are mandatory, that is Windsor will only successfully resole the component if
 		/// it can provide value for all of these properties. </param>
 		/// <returns> </returns>
-		public ComponentRegistration<TService> Properties(PropertyFilter filter)
+		public static ComponentRegistration<TService> Properties<TService>(this ComponentRegistration<TService> self, PropertyFilter filter) where TService : class
 		{
-			return AddDescriptor(new DelegatingModelDescriptor(builder: (k, c) =>
+			return self.AddDescriptor(new DelegatingModelDescriptor(builder: (k, c) =>
 			{
 				var filters = StandardPropertyFilters.GetPropertyFilters(c, createIfMissing: true);
 				filters.Add(StandardPropertyFilters.Create(filter));
