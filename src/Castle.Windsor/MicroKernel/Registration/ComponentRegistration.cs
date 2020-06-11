@@ -120,12 +120,18 @@ namespace Castle.MicroKernel.Registration
 			get { return new ProxyGroup<TService>(this); }
 		}
 
-		protected internal IList<Type> Services
+		/// <summary>
+		/// Returns a readonly <see cref="IList{T}"/> of potential services that can satisfy the current <see cref="ComponentRegistration{TService}"/>.
+		/// </summary>
+		public IList<Type> Services
 		{
-			get { return potentialServices; }
+			get { return potentialServices.AsReadOnly(); }
 		}
 
-		protected internal int ServicesCount
+		/// <summary>
+		/// Returns the count of potential services that can satisfy the current <see cref="ComponentRegistration{TService}"/>.
+		/// </summary>
+		public int ServicesCount
 		{
 			get { return potentialServices.Count; }
 		}
